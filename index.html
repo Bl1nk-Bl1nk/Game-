@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Neon Drift</title>
+  <style>
+    body {
+      margin: 0;
+      background: #0b0b16;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      color: white;
+      font-family: Arial, sans-serif;
+    }
+    canvas {
+      border-radius: 12px;
+      background: linear-gradient(#0b0b16, #121233);
+      box-shadow: 0 0 25px #5f7cff;
+    }
+    #hint {
+      position: absolute;
+      bottom: 20px;
+      opacity: 0.7;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+
+<canvas id="game" width="400" height="600"></canvas>
+<div id="hint">Click or press SPACE to float</div>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+let player = {
+  x: 80,
+  y: 300,
+  r: 12,
+  velocity: 0
+};
+
+let gravity = 0.25;
+let obstacles = [];
+let score = 0;
+let gameOver = false;
+
+function spawnObstacle() {
+  const gap = 150;
+  const topHeight = Math.random() * 250 + 40;
+  obstacles.push({
+    x: canvas.width,
+    top: topHeight,
+    bottom: canvas.height - topHeight - gap,
+    drift: Math.random() * 1.5 - 0.75
+  });
+}
+
+function reset() {
+  player.y = 300;
+  player.velocity = 0;
+  obstacles = [];
+  score = 0;
+  gravity = 0.25;
+  gameOver = false;
+}
+
+function drawPlayer() {
+  ctx.beginPath();
+  ctx.arc(player.x, player.y, player.r, 0, Math.PI * 2);
+  ctx.fillStyle = "#7cffc4";
+  ctx.fill();
+}
+
+function drawObstacles() {
+  ctx.fillStyle = "#5f7cff";
+  obstacles.forEach(o => {
+    ctx.fillRect(o.x, 0, 50, o.top);
+    ctx.fillRect(o.x, canvas.height - o.bottom, 50, o.bottom);
+  });
+}
+
+function update() {
+  if (gameOver) return;
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  player.velocity += gravity;
+  player.y += player.velocity;
+
+  gravity += 0.00005;
+
+  if (player.y < 0 || player.y > canvas.height) {
+    gameOver = true;
+  }
+
+  obstacles.forEach(o => {
+    o.x -= 2;
+    o.top += o.drift;
+    o.bottom -= o.drift;
+
+    if (
+      player.x + player.r > o.x &&
+      player.x - player.r < o.x + 50 &&
+      (player.y - player.r < o.top ||
+       player.y + player.r > canvas.height - o.bottom)
+    ) {
+      gameOver = true;
+    }
+
+    if (o.x === player.x) score++;
+  });
+
+  if (obstacles.length === 0 || obstacles[obstacles.length - 1].x < 200) {
+    spawnObstacle();
+  }
+
+  obstacles = obstacles.filter(o => o.x > -60);
+
+  drawObstacles();
+  drawPlayer();
+
+  ctx.fillStyle = "white";
+  ctx.font = "20px Arial";
+  ctx.fillText("Score: " + score, 15, 30);
+
+  if (gameOver) {
+    ctx.fillStyle = "rgba(0,0,0,0.6)";
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+    ctx.fillStyle = "white";
+    ctx.font = "28px Arial";
+    ctx.fillText("Game Over", 120, 260);
+    ctx.font = "16px Arial";
+    ctx.fillText("Click to restart", 145, 300);
+  }
+
+  requestAnimationFrame(update);
+}
+
+document.addEventListener("keydown", e => {
+  if (e.code === "Space") {
+    if (gameOver) reset();
+    player.velocity = -5;
+  }
+});
+
+canvas.addEventListener("click", () => {
+  if (gameOver) reset();
+  player.velocity = -5;
+});
+
+update();
+</script>
+</body>
+</html>
